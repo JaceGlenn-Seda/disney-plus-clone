@@ -23,4 +23,4 @@ A fully functional Disney+ clone built with React, Firebase & TMDB API.
 - React Router
 
 ## 👨‍💻 Built by
-[Glen Seda](https://github.com/JaceGlenn-Seda) — Jace Studio
+[Jace Glen Seda](https://github.com/JaceGlenn-Seda) — Jace Studio
