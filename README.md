@@ -1,15 +1,26 @@
-# Disney Plus Clone Readme
+# Disney+ Clone 🎬
 
-## <a href="https://disney-clone-d1e27.firebaseapp.com" target="_blank">LIVE DEMO</a>
+A fully functional Disney+ clone built with React, Firebase & TMDB API.
 
-### 🔴 Watch full tutorial <a href='https://www.youtube.com/watch?v=R_OERlafbmw'>HERE</a>
+## 🔗 Live Demo
+[View Live](#) ← will update after Firebase deploy
 
-## Description
-This is the ReactJS Disney Plus Clone, the perfect project to put on your portfolio by Clever Programmer.
+## ✨ Features
+- Google Authentication
+- Real movie data from TMDB API
+- Movie detail pages with trailer playback
+- Watchlist (save/remove movies)
+- Live search with suggestions
+- Category pages (Disney, Pixar, Marvel, Star Wars, NatGeo)
+- Smooth lazy loading with skeleton cards
 
-## Build it today!
+## 🛠 Tech Stack
+- React.js
+- Firebase (Auth + Firestore)
+- TMDB API
+- Redux Toolkit
+- Styled Components
+- React Router
 
-#### PREREQUISITES:
-- Sign up for a Firebase account <a href='https://firebase.google.com'>HERE</a>
-- Install Node JS in your computer <a href='https://nodejs.org/en/'>HERE</a>
-- Download all the images and videos <a href='https://drive.google.com/drive/folders/13SvUkXPh7ZC1FRtp62VKFi572elZyxi8?usp=sharing'>HERE</a>
+## 👨‍💻 Built by
+[Glen Seda](https://github.com/JaceGlenn-Seda) — Jace Studio
