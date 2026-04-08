@@ -20,10 +20,12 @@ const Header = (props) => {
     auth.onAuthStateChanged(async (user) => {
       if (user) {
         setUser(user);
-        history.push("/home");
+        if (history.location.pathname === "/") {
+          history.push("/home");
+        }
       }
     });
-  }, [userName]);
+  }, []);
 
   const handleAuth = () => {
     if (!userName) {
@@ -52,6 +54,7 @@ const Header = (props) => {
         name: user.displayName,
         email: user.email,
         photo: user.photoURL,
+        uid: user.uid,
       })
     );
   };
@@ -71,11 +74,11 @@ const Header = (props) => {
               <img src="/images/home-icon.svg" alt="HOME" />
               <span>HOME</span>
             </a>
-            <a>
+            <a href="/search">
               <img src="/images/search-icon.svg" alt="SEARCH" />
               <span>SEARCH</span>
             </a>
-            <a>
+            <a href="/watchlist">
               <img src="/images/watchlist-icon.svg" alt="WATCHLIST" />
               <span>WATCHLIST</span>
             </a>
@@ -126,7 +129,6 @@ const Logo = styled.a`
   max-height: 70px;
   font-size: 0;
   display: inline-block;
-
   img {
     display: block;
     width: 100%;
@@ -149,6 +151,8 @@ const NavMenu = styled.div`
     display: flex;
     align-items: center;
     padding: 0 12px;
+    cursor: pointer;
+    text-decoration: none;
 
     img {
       height: 20px;
@@ -192,10 +196,6 @@ const NavMenu = styled.div`
       }
     }
   }
-
-  /* @media (max-width: 768px) {
-    display: none;
-  } */
 `;
 
 const Login = styled.a`
@@ -206,6 +206,7 @@ const Login = styled.a`
   border: 1px solid #f9f9f9;
   border-radius: 4px;
   transition: all 0.2s ease 0s;
+  cursor: pointer;
 
   &:hover {
     background-color: #f9f9f9;

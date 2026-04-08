@@ -1,50 +1,118 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import styled from "styled-components";
+import axios from "axios";
+import { useSelector } from "react-redux";
 import db from "../firebase";
+import { selectUserId } from "../features/user/userSlice";
 
-const Detail = (props) => {
+const API_KEY = process.env.REACT_APP_TMDB_API_KEY;
+const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/original";
+
+const Detail = () => {
   const { id } = useParams();
-  const [detailData, setDetailData] = useState({});
+  const [detailData, setDetailData] = useState(null);
+  const [trailerKey, setTrailerKey] = useState(null);
+  const [logoPath, setLogoPath] = useState(null);
+  const [added, setAdded] = useState(false);
+  const userId = useSelector(selectUserId);
 
   useEffect(() => {
-    db.collection("movies")
-      .doc(id)
+    async function fetchDetail() {
+      const [movieRes, videoRes, imageRes] = await Promise.all([
+        axios.get(`https://api.themoviedb.org/3/movie/${id}?api_key=${API_KEY}&language=en-US`),
+        axios.get(`https://api.themoviedb.org/3/movie/${id}/videos?api_key=${API_KEY}&language=en-US`),
+        axios.get(`https://api.themoviedb.org/3/movie/${id}/images?api_key=${API_KEY}&include_image_language=en,null`)
+      ]);
+
+      setDetailData(movieRes.data);
+
+      const trailer = videoRes.data.results.find(
+        (v) => v.type === "Trailer" && v.site === "YouTube"
+      );
+      if (trailer) setTrailerKey(trailer.key);
+
+      const logo = imageRes.data.logos?.[0];
+      if (logo) setLogoPath(logo.file_path);
+    }
+    fetchDetail();
+  }, [id]);
+
+  useEffect(() => {
+    if (!userId || !id) return;
+    db.collection("watchlist")
+      .doc(userId)
+      .collection("movies")
+      .doc(String(id))
       .get()
       .then((doc) => {
-        if (doc.exists) {
-          setDetailData(doc.data());
-        } else {
-          console.log("no such document in firebase 🔥");
-        }
-      })
-      .catch((error) => {
-        console.log("Error getting document:", error);
+        if (doc.exists) setAdded(true);
       });
-  }, [id]);
+  }, [userId, id]);
+
+  const handleAddToWatchlist = async () => {
+    if (!userId) return alert("Please log in first!");
+    if (added) {
+      await db
+        .collection("watchlist")
+        .doc(userId)
+        .collection("movies")
+        .doc(String(id))
+        .delete();
+      setAdded(false);
+    } else {
+      await db
+        .collection("watchlist")
+        .doc(userId)
+        .collection("movies")
+        .doc(String(id))
+        .set({
+          id: detailData.id,
+          title: detailData.title,
+          backdrop_path: detailData.backdrop_path,
+        });
+      setAdded(true);
+    }
+  };
+
+  if (!detailData) return <Loading>Loading...</Loading>;
 
   return (
     <Container>
       <Background>
-        <img alt={detailData.title} src={detailData.backgroundImg} />
+        <img alt={detailData.title} src={`${IMAGE_BASE_URL}${detailData.backdrop_path}`} />
       </Background>
 
       <ImageTitle>
-        <img alt={detailData.title} src={detailData.titleImg} />
+        {logoPath ? (
+          <img alt={detailData.title} src={`${IMAGE_BASE_URL}${logoPath}`} />
+        ) : (
+          <h1>{detailData.title}</h1>
+        )}
       </ImageTitle>
+
       <ContentMeta>
+        <GenreTags>
+          {detailData.genres?.map((g) => (
+            <Tag key={g.id}>{g.name}</Tag>
+          ))}
+        </GenreTags>
         <Controls>
           <Player>
             <img src="/images/play-icon-black.png" alt="" />
             <span>Play</span>
           </Player>
-          <Trailer>
+          <TrailerBtn>
             <img src="/images/play-icon-white.png" alt="" />
             <span>Trailer</span>
-          </Trailer>
-          <AddList>
-            <span />
-            <span />
+          </TrailerBtn>
+          <AddList onClick={handleAddToWatchlist} added={added}>
+            {added ? <Checkmark>✓</Checkmark> : (
+              <>
+                <span />
+                <span />
+              </>
+            )}
           </AddList>
           <GroupWatch>
             <div>
@@ -52,16 +120,39 @@ const Detail = (props) => {
             </div>
           </GroupWatch>
         </Controls>
-        <SubTitle>{detailData.subTitle}</SubTitle>
-        <Description>{detailData.description}</Description>
+        <SubTitle>{detailData.tagline}</SubTitle>
+        <Description>{detailData.overview}</Description>
       </ContentMeta>
+
+      {trailerKey && (
+        <TrailerWrapper>
+          <iframe
+            width="100%"
+            height="500px"
+            src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&mute=1`}
+            title="Trailer"
+            frameBorder="0"
+            allow="autoplay; encrypted-media"
+            allowFullScreen
+          />
+        </TrailerWrapper>
+      )}
     </Container>
   );
 };
 
+const Loading = styled.div`
+  color: white;
+  font-size: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+`;
+
 const Container = styled.div`
   position: relative;
-  min-height: calc(100vh-250px);
+  min-height: calc(100vh - 250px);
   overflow-x: hidden;
   display: block;
   top: 72px;
@@ -75,11 +166,9 @@ const Background = styled.div`
   right: 0px;
   top: 0px;
   z-index: -1;
-
   img {
     width: 100vw;
     height: 100vh;
-
     @media (max-width: 768px) {
       width: initial;
     }
@@ -89,19 +178,39 @@ const Background = styled.div`
 const ImageTitle = styled.div`
   align-items: flex-end;
   display: flex;
-  -webkit-box-pack: start;
   justify-content: flex-start;
   margin: 0px auto;
   height: 30vw;
   min-height: 170px;
   padding-bottom: 24px;
   width: 100%;
-
   img {
     max-width: 600px;
     min-width: 200px;
     width: 35vw;
   }
+  h1 {
+    color: white;
+    font-size: 3vw;
+  }
+`;
+
+const GenreTags = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+`;
+
+const Tag = styled.span`
+  background: rgba(249, 249, 249, 0.2);
+  border: 1px solid rgba(249, 249, 249, 0.4);
+  border-radius: 4px;
+  color: rgb(249, 249, 249);
+  font-size: 12px;
+  padding: 4px 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 `;
 
 const ContentMeta = styled.div`
@@ -129,31 +238,18 @@ const Player = styled.button`
   letter-spacing: 1.8px;
   text-align: center;
   text-transform: uppercase;
-  background: rgb (249, 249, 249);
+  background: rgb(249, 249, 249);
   border: none;
   color: rgb(0, 0, 0);
-
   img {
     width: 32px;
   }
-
   &:hover {
     background: rgb(198, 198, 198);
   }
-
-  @media (max-width: 768px) {
-    height: 45px;
-    padding: 0px 12px;
-    font-size: 12px;
-    margin: 0px 10px 0px 0px;
-
-    img {
-      width: 25px;
-    }
-  }
 `;
 
-const Trailer = styled(Player)`
+const TrailerBtn = styled(Player)`
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid rgb(249, 249, 249);
   color: rgb(249, 249, 249);
@@ -166,27 +262,31 @@ const AddList = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: ${(props) => props.added ? "rgba(255,255,255,0.3)" : "rgba(0, 0, 0, 0.6)"};
   border-radius: 50%;
   border: 2px solid white;
   cursor: pointer;
-
+  transition: background 0.3s;
   span {
     background-color: rgb(249, 249, 249);
     display: inline-block;
-
     &:first-child {
       height: 2px;
       transform: translate(1px, 0px) rotate(0deg);
       width: 16px;
     }
-
     &:nth-child(2) {
       height: 16px;
       transform: translateX(-8px) rotate(0deg);
       width: 2px;
     }
   }
+`;
+
+const Checkmark = styled.span`
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
 `;
 
 const GroupWatch = styled.div`
@@ -198,13 +298,11 @@ const GroupWatch = styled.div`
   align-items: center;
   cursor: pointer;
   background: white;
-
   div {
     height: 40px;
     width: 40px;
     background: rgb(0, 0, 0);
     border-radius: 50%;
-
     img {
       width: 100%;
     }
@@ -215,10 +313,6 @@ const SubTitle = styled.div`
   color: rgb(249, 249, 249);
   font-size: 15px;
   min-height: 20px;
-
-  @media (max-width: 768px) {
-    font-size: 12px;
-  }
 `;
 
 const Description = styled.div`
@@ -226,10 +320,12 @@ const Description = styled.div`
   font-size: 20px;
   padding: 16px 0px;
   color: rgb(249, 249, 249);
+`;
 
-  @media (max-width: 768px) {
-    font-size: 14px;
-  }
+const TrailerWrapper = styled.div`
+  margin-top: 40px;
+  border-radius: 10px;
+  overflow: hidden;
 `;
 
 export default Detail;
