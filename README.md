@@ -3,7 +3,7 @@
 A fully functional Disney+ clone built with React, Firebase & TMDB API.
 
 ## 🔗 Live Demo
-[View Live](#) ← will update after Firebase deploy
+View Live : disney-plus-clone-fd021.web.app 
 
 ## ✨ Features
 - Google Authentication
